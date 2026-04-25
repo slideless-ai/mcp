@@ -1,0 +1,46 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "slideless-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Custom domain — bound after first deploy via Cloudflare dashboard or
+  // `wrangler deploy --routes`. Until then the worker is reachable at
+  // https://slideless-mcp.<account>.workers.dev/mcp.
+  "routes": [
+    {
+      "pattern": "mcp.slideless.ai/*",
+      "custom_domain": true
+    }
+  ],
+
+  // Cloudflare-native rate limiting (per-route).
+  // - PER_IP: 60 req / 10s per source IP — catches one runaway agent
+  // - PER_KEY: 600 req / 1h per Authorization-header hash — catches abusive keys without
+  //   blocking legitimate spikes from a single org
+  "unsafe": {
+    "bindings": [
+      {
+        "name": "PER_IP",
+        "type": "ratelimit",
+        "namespace_id": "1001",
+        "simple": { "limit": 60, "period": 10 }
+      },
+      {
+        "name": "PER_KEY",
+        "type": "ratelimit",
+        "namespace_id": "1002",
+        "simple": { "limit": 600, "period": 60 }
+      }
+    ]
+  },
+
+  "vars": {
+    "SLIDELESS_API_BASE_URL": "https://europe-west1-slideless-ai.cloudfunctions.net"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

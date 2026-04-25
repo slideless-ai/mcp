@@ -1,0 +1,24 @@
+{
+  "name": "slideless-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Slideless MCP server — wraps the Slideless HTTP API as MCP tools so non-technical users can list, share, and manage HTML presentations from claude.ai, Claude Desktop, ChatGPT, and any MCP host.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "agents": "^0.11.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.99.0"
+  }
+}
