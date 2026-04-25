@@ -5,12 +5,12 @@
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Custom domain — bound after first deploy via Cloudflare dashboard or
-  // `wrangler deploy --routes`. Until then the worker is reachable at
-  // https://slideless-mcp.<account>.workers.dev/mcp.
+  // Custom domain — bound on first deploy. Custom Domains take the entire
+  // hostname (no wildcards, no paths). Until DNS is in place the worker is
+  // also reachable at https://slideless-mcp.<account>.workers.dev/mcp.
   "routes": [
     {
-      "pattern": "mcp.slideless.ai/*",
+      "pattern": "mcp.slideless.ai",
       "custom_domain": true
     }
   ],
