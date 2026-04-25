@@ -112,19 +112,60 @@ const LANDING_HTML = `<!doctype html>
 </body>
 </html>`;
 
-function unauthorizedResponse(): Response {
+/**
+ * RFC 9728 — protected resource metadata. Tells OAuth-aware clients (Claude
+ * Desktop, claude.ai) which authorization server to talk to. The MCP Worker
+ * doesn't host the OAuth flow itself; it points at slideless-app.
+ */
+function protectedResourceMetadata(req: Request): Response {
+  const reqUrl = new URL(req.url);
+  // The "resource" the client should request tokens for. We bind to
+  // app.slideless.ai because that's the actual protected resource (Cloud
+  // Functions accept tokens with aud=app.slideless.ai). The Worker is a
+  // protocol transport, not a separate resource.
+  const body = {
+    resource: "https://app.slideless.ai",
+    authorization_servers: ["https://app.slideless.ai"],
+    scopes_supported: ["presentations:read", "presentations:write"],
+    bearer_methods_supported: ["header"],
+    // Echo the actual MCP host for debug/observability.
+    mcp_endpoint: `${reqUrl.origin}/mcp`,
+  };
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+/**
+ * 401 Unauthorized for the /mcp endpoint when no Bearer is present. Per
+ * RFC 9728 §5.1 + the MCP spec, the response MUST include WWW-Authenticate
+ * pointing at the protected-resource metadata document so OAuth clients can
+ * discover the auth server.
+ */
+function unauthorizedResponse(req: Request): Response {
+  const reqUrl = new URL(req.url);
+  const metadataUrl = `${reqUrl.origin}/.well-known/oauth-protected-resource`;
   return new Response(
     JSON.stringify({
       jsonrpc: "2.0",
       error: {
         code: -32001,
         message:
-          "Missing Authorization header. Configure this connector with `Authorization: Bearer cko_…`. Get a key at https://app.slideless.ai (Settings → API Keys).",
+          "Authentication required. This connector uses OAuth — your MCP host (Claude Desktop, claude.ai, ChatGPT desktop, mcp-inspector) should follow the WWW-Authenticate header to discover the auth flow. " +
+          "If you're using a host that supports static API keys (Claude Code, Cursor), set `Authorization: Bearer cko_…` and reconnect. " +
+          "Get a key at https://app.slideless.ai (Settings → API Keys).",
       },
     }),
     {
       status: 401,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "WWW-Authenticate": `Bearer resource_metadata="${metadataUrl}"`,
+      },
     },
   );
 }
@@ -146,6 +187,14 @@ export default {
     const url = new URL(request.url);
     const authHeader = request.headers.get("Authorization");
 
+    // OAuth protected-resource metadata. Required by the MCP spec + RFC 9728
+    // for hosts that auto-discover auth (Claude Desktop, claude.ai).
+    if (url.pathname === "/.well-known/oauth-protected-resource") {
+      const res = protectedResourceMetadata(request);
+      logRequest(request, authHeader, res.status, startedAt);
+      return res;
+    }
+
     if (url.pathname !== "/mcp") {
       const res = landingResponse();
       logRequest(request, authHeader, res.status, startedAt);
@@ -159,7 +208,7 @@ export default {
     }
 
     if (!authHeader) {
-      const res = unauthorizedResponse();
+      const res = unauthorizedResponse(request);
       logRequest(request, authHeader, res.status, startedAt);
       return res;
     }

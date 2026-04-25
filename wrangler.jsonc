@@ -5,15 +5,13 @@
   "compatibility_date": "2025-03-10",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Custom domain — bound on first deploy. Custom Domains take the entire
-  // hostname (no wildcards, no paths). Until DNS is in place the worker is
-  // also reachable at https://slideless-mcp.<account>.workers.dev/mcp.
-  "routes": [
-    {
-      "pattern": "mcp.slideless.ai",
-      "custom_domain": true
-    }
-  ],
+  // Custom domain `mcp.slideless.ai` — uncomment once the DNS zone for
+  // slideless.ai is added to this Cloudflare account. Until then the worker
+  // is reachable at https://slideless-mcp.<account-subdomain>.workers.dev/mcp.
+  // "routes": [
+  //   { "pattern": "mcp.slideless.ai", "custom_domain": true }
+  // ],
+  "workers_dev": true,
 
   // Cloudflare-native rate limiting (per-route).
   // - PER_IP: 60 req / 10s per source IP — catches one runaway agent
