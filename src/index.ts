@@ -2,13 +2,18 @@
  * Slideless MCP — Cloudflare Worker entry.
  *
  * Routes:
- *   POST /mcp         → MCP streamable-HTTP endpoint
- *   GET  /            → small static landing page
- *   *                 → falls through to the landing page
+ *   POST    /mcp                                     → MCP streamable-HTTP endpoint
+ *   GET     /.well-known/oauth-protected-resource    → RFC 9728 metadata for OAuth discovery
+ *   OPTIONS /mcp, /.well-known/oauth-protected-resource → CORS preflight
+ *   GET     /                                        → small static landing page
+ *   *                                                → falls through to the landing page
  *
- * Stateless proxy. Every MCP request carries the user's
- * `Authorization: Bearer cko_…` header; the Worker forwards it verbatim
- * to slideless-app's Cloud Functions. No DB, no cached secrets.
+ * Stateless proxy. Each MCP request carries an `Authorization: Bearer <token>`
+ * header (either a `cko_` static org key for hosts that allow custom headers, or
+ * a JWT issued by the slideless-app OAuth platform for hosts that speak OAuth
+ * discovery — Claude Desktop, claude.ai). The Worker forwards the header
+ * verbatim to slideless-app's Cloud Functions, which validate. No JWT logic
+ * here. No DB, no cached secrets.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -90,6 +95,7 @@ const LANDING_HTML = `<!doctype html>
 <meta charset="utf-8" />
 <title>Slideless MCP</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="https://app.slideless.ai/favicon.svg" />
 <style>
   body { font: 16px/1.5 system-ui, -apple-system, sans-serif; max-width: 640px; margin: 4rem auto; padding: 0 1.5rem; color: #111; }
   h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
@@ -119,23 +125,39 @@ const LANDING_HTML = `<!doctype html>
  */
 function protectedResourceMetadata(req: Request): Response {
   const reqUrl = new URL(req.url);
-  // The "resource" the client should request tokens for. We bind to
-  // app.slideless.ai because that's the actual protected resource (Cloud
-  // Functions accept tokens with aud=app.slideless.ai). The Worker is a
-  // protocol transport, not a separate resource.
+  // Per RFC 9728, `resource` MUST identify this resource server. Claude
+  // Desktop validates that the metadata's `resource` matches the URL it
+  // connected to — otherwise it bails with "Couldn't reach the MCP server".
+  // The token issued via OAuth will be audience-bound to this URL; Cloud
+  // Functions' middleware accepts both this aud and app.slideless.ai.
   const body = {
-    resource: "https://app.slideless.ai",
+    resource: reqUrl.origin,
     authorization_servers: ["https://app.slideless.ai"],
     scopes_supported: ["presentations:read", "presentations:write"],
     bearer_methods_supported: ["header"],
-    // Echo the actual MCP host for debug/observability.
-    mcp_endpoint: `${reqUrl.origin}/mcp`,
   };
   return new Response(JSON.stringify(body), {
     status: 200,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "public, max-age=3600",
+      // claude.ai discovers OAuth via cross-origin fetch from the browser;
+      // without CORS the discovery silently fails.
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
+function corsPreflightResponse(): Response {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, MCP-Session-Id",
+      "Access-Control-Max-Age": "86400",
     },
   });
 }
@@ -165,6 +187,10 @@ function unauthorizedResponse(req: Request): Response {
       headers: {
         "Content-Type": "application/json",
         "WWW-Authenticate": `Bearer resource_metadata="${metadataUrl}"`,
+        // claude.ai is browser-based; without CORS it can't even read the
+        // WWW-Authenticate header to discover the auth flow.
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Expose-Headers": "WWW-Authenticate",
       },
     },
   );
@@ -187,10 +213,33 @@ export default {
     const url = new URL(request.url);
     const authHeader = request.headers.get("Authorization");
 
+    // CORS preflight for cross-origin discovery (claude.ai is browser-based).
+    if (
+      request.method === "OPTIONS" &&
+      (url.pathname === "/mcp" ||
+        url.pathname === "/.well-known/oauth-protected-resource")
+    ) {
+      const res = corsPreflightResponse();
+      logRequest(request, authHeader, res.status, startedAt);
+      return res;
+    }
+
     // OAuth protected-resource metadata. Required by the MCP spec + RFC 9728
     // for hosts that auto-discover auth (Claude Desktop, claude.ai).
     if (url.pathname === "/.well-known/oauth-protected-resource") {
       const res = protectedResourceMetadata(request);
+      logRequest(request, authHeader, res.status, startedAt);
+      return res;
+    }
+
+    // Favicon — redirect to the canonical Slideless icon. Browsers probe
+    // /favicon.ico unconditionally; without this they'd land on the HTML
+    // landing page and fail to parse it as an image.
+    if (url.pathname === "/favicon.ico" || url.pathname === "/favicon.svg") {
+      const res = Response.redirect(
+        "https://app.slideless.ai/favicon.svg",
+        301,
+      );
       logRequest(request, authHeader, res.status, startedAt);
       return res;
     }
