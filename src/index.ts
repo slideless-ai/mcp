@@ -135,6 +135,11 @@ function protectedResourceMetadata(req: Request): Response {
     authorization_servers: ["https://app.slideless.ai"],
     scopes_supported: ["presentations:read", "presentations:write"],
     bearer_methods_supported: ["header"],
+    // Non-standard hint for hosts that surface a logo for the connector.
+    // Claude Desktop's behavior here isn't documented; advertising it can
+    // only help.
+    resource_logo_uri: "https://app.slideless.ai/favicon.svg",
+    resource_documentation: "https://docs.slideless.ai/mcp",
   };
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -232,10 +237,11 @@ export default {
       return res;
     }
 
-    // Favicon — redirect to the canonical Slideless icon. Browsers probe
-    // /favicon.ico unconditionally; without this they'd land on the HTML
-    // landing page and fail to parse it as an image.
-    if (url.pathname === "/favicon.ico" || url.pathname === "/favicon.svg") {
+    // Favicon — redirect any `/favicon.*` (or `/<anything>/favicon.*`) probe
+    // to the canonical Slideless icon. Browsers probe `/favicon.ico` from
+    // the origin, but some MCP hosts probe relative to the connector URL
+    // (e.g. `/mcp/favicon.ico`). The trailing-segment match covers both.
+    if (/\/favicon\.(ico|svg|png)$/.test(url.pathname)) {
       const res = Response.redirect(
         "https://app.slideless.ai/favicon.svg",
         301,
