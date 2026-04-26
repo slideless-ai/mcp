@@ -272,7 +272,26 @@ export default {
     // Cheap to build (no I/O); avoids the Durable Object plumbing of McpAgent.
     const client = new SlidelessClient(env.SLIDELESS_API_BASE_URL, authHeader);
     const server = new McpServer(
-      { name: "slideless", version: "0.1.0" },
+      {
+        name: "slideless",
+        version: "0.1.0",
+        // SEP-973 — display metadata for MCP hosts that surface server branding
+        // (e.g. Claude Desktop's connector list, ChatGPT's app surface).
+        // Rendering is client-dependent and rolling out — advertising correctly
+        // costs nothing and any host that supports it will pick this up.
+        title: "Slideless",
+        icons: [
+          {
+            src: "https://app.slideless.ai/apple-touch-icon.png",
+            mimeType: "image/png",
+            sizes: ["180x180"],
+          },
+          {
+            src: "https://app.slideless.ai/favicon.svg",
+            mimeType: "image/svg+xml",
+          },
+        ],
+      } as never,
       { instructions: INSTRUCTIONS },
     );
     registerAllTools(server, client);
