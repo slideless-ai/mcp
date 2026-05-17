@@ -35,6 +35,13 @@ export function registerMarketplaceTools(
           .string()
           .optional()
           .describe("Filter to listings carrying this tag."),
+        stack: z
+          .string()
+          .optional()
+          .describe(
+            "Filter to listings whose tech stack includes this technology. " +
+              "Pass one lowercase slug, e.g. 'nextjs', 'firebase', 'n8n'.",
+          ),
         category: z
           .string()
           .optional()
@@ -55,18 +62,40 @@ export function registerMarketplaceTools(
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ query, kind, tag, category, sort, limit }) =>
+    async ({ query, kind, tag, stack, category, sort, limit }) =>
       wrapToolErrors(async () => {
         const result = await client.listMarketplaceListings({
-          query,
           kind,
           tag,
+          stack,
           category,
           sort,
           limit,
         });
+        // The backend has no text-search param — filter the fetched page
+        // client-side (substring match on title/description/slug/tags).
+        let listings = result.listings;
+        if (query && query.trim().length > 0) {
+          const q = query.trim().toLowerCase();
+          listings = listings.filter(
+            (l) =>
+              l.title.toLowerCase().includes(q) ||
+              l.description.toLowerCase().includes(q) ||
+              l.slug.toLowerCase().includes(q) ||
+              l.tags.some((t) => t.toLowerCase().includes(q)),
+          );
+        }
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                { ...result, listings },
+                null,
+                2,
+              ),
+            },
+          ],
         };
       }),
   );
@@ -206,6 +235,14 @@ export function registerMarketplaceTools(
           .array(z.string())
           .optional()
           .describe("Tags for search and filtering (e.g. ['pitch','saas','dark'])."),
+        techStack: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Technologies the artifact is built with or built for. Each entry " +
+              "is one lowercase technology slug — e.g. ['nextjs','firebase','n8n']. " +
+              "Use the canonical short slug; no display names, no version numbers.",
+          ),
         category: z
           .string()
           .optional()
@@ -218,7 +255,7 @@ export function registerMarketplaceTools(
           .describe("Which pushed version to publish. Defaults to the deck's latest version."),
       },
     },
-    async ({ presentationId, kind, interactive, description, slug, title, tags, category, version }) =>
+    async ({ presentationId, kind, interactive, description, slug, title, tags, techStack, category, version }) =>
       wrapToolErrors(async () => {
         const result = await client.publishMarketplaceListing({
           presentationId,
@@ -228,6 +265,7 @@ export function registerMarketplaceTools(
           slug,
           title,
           tags,
+          techStack,
           category,
           version,
         });

@@ -278,6 +278,7 @@ export interface MarketplacePublicListing {
   title: string;
   description: string;
   tags: string[];
+  techStack: string[];
   category: string | null;
   authorDisplayName: string;
   authorHandle: string;
@@ -292,9 +293,9 @@ export interface MarketplacePublicListing {
 }
 
 export interface ListMarketplaceListingsInput {
-  query?: string;
   kind?: MarketplaceKind;
   tag?: string;
+  stack?: string;
   category?: string;
   sort?: "recent" | "popular" | "stars";
   limit?: number;
@@ -302,7 +303,7 @@ export interface ListMarketplaceListingsInput {
 
 export interface ListMarketplaceListingsOutput {
   listings: MarketplacePublicListing[];
-  total: number;
+  nextCursor: string | null;
 }
 
 export interface GetListingOutput extends MarketplacePublicListing {
@@ -333,6 +334,7 @@ export interface PublishMarketplaceListingInput {
   slug?: string;
   title?: string;
   tags?: string[];
+  techStack?: string[];
   category?: string;
   version?: number;
 }

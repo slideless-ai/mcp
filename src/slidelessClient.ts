@@ -242,9 +242,9 @@ export class SlidelessClient {
     input: ListMarketplaceListingsInput,
   ): Promise<ListMarketplaceListingsOutput> {
     const params = new URLSearchParams();
-    if (input.query) params.set("query", input.query);
     if (input.kind) params.set("kind", input.kind);
     if (input.tag) params.set("tag", input.tag);
+    if (input.stack) params.set("stack", input.stack);
     if (input.category) params.set("category", input.category);
     if (input.sort) params.set("sort", input.sort);
     if (input.limit !== undefined) params.set("limit", String(input.limit));
