@@ -6,19 +6,27 @@ import type {
   CommitPresentationVersionInput,
   CommitPresentationVersionOutput,
   DeletePresentationOutput,
+  GetListingOutput,
+  GetMarketplaceListingFilesOutput,
   GetPresentationVersionOutput,
   InviteCollaboratorInput,
   InviteCollaboratorOutput,
   ListCollaboratorsOutput,
+  ListMarketplaceListingsInput,
+  ListMarketplaceListingsOutput,
   ListMyPresentationsOutput,
   ListPresentationVersionsOutput,
   PrecheckAssetsInput,
   PrecheckAssetsOutput,
   PresentationInfo,
+  PublishMarketplaceListingInput,
+  PublishMarketplaceListingOutput,
+  RecordMarketplaceRemixOutput,
   SetTokenVersionModeInput,
   SetTokenVersionModeOutput,
   SharePresentationViaEmailInput,
   SharePresentationViaEmailOutput,
+  StarMarketplaceListingOutput,
   UninviteCollaboratorInput,
   UninviteCollaboratorOutput,
   UnsharePresentationInput,
@@ -224,6 +232,108 @@ export class SlidelessClient {
   listCollaborators(presentationId: string): Promise<ListCollaboratorsOutput> {
     const url = `/listCollaborators?presentationId=${encodeURIComponent(presentationId)}`;
     return this.get<ListCollaboratorsOutput>(url);
+  }
+
+  // --------------------------------------------------------------------------
+  // Marketplace
+  // --------------------------------------------------------------------------
+
+  listMarketplaceListings(
+    input: ListMarketplaceListingsInput,
+  ): Promise<ListMarketplaceListingsOutput> {
+    const params = new URLSearchParams();
+    if (input.query) params.set("query", input.query);
+    if (input.kind) params.set("kind", input.kind);
+    if (input.tag) params.set("tag", input.tag);
+    if (input.category) params.set("category", input.category);
+    if (input.sort) params.set("sort", input.sort);
+    if (input.limit !== undefined) params.set("limit", String(input.limit));
+    const qs = params.toString();
+    return this.get<ListMarketplaceListingsOutput>(
+      `/listMarketplaceListings${qs ? `?${qs}` : ""}`,
+    );
+  }
+
+  getMarketplaceListing(slug: string): Promise<GetListingOutput> {
+    const url = `/getMarketplaceListing?slug=${encodeURIComponent(slug)}`;
+    return this.get<GetListingOutput>(url);
+  }
+
+  getMarketplaceListingFiles(
+    slug: string,
+  ): Promise<GetMarketplaceListingFilesOutput> {
+    const url = `/getMarketplaceListingFiles?slug=${encodeURIComponent(slug)}`;
+    return this.get<GetMarketplaceListingFilesOutput>(url);
+  }
+
+  /**
+   * Stream a single content-addressed marketplace blob. Returns the raw bytes
+   * + the server's reported content-type. Mirrors downloadPresentationAsset.
+   */
+  async downloadMarketplaceAsset(args: {
+    slug: string;
+    sha256: string;
+  }): Promise<{ bytes: Uint8Array; contentType: string }> {
+    const params = new URLSearchParams();
+    params.set("slug", args.slug);
+    params.set("sha256", args.sha256);
+    const url = `${this.baseUrl}/downloadMarketplaceAsset?${params.toString()}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Authorization: this.authHeader },
+    });
+    if (!res.ok) {
+      try {
+        const body = (await res.json()) as {
+          success: false;
+          error: { code: string; message: string };
+        };
+        if (body.success === false) {
+          throw new SlidelessApiError(res.status, body.error);
+        }
+      } catch {
+        // Fall through to the generic error below.
+      }
+      throw new SlidelessApiError(res.status, {
+        code: `http-${res.status}`,
+        message: `Slideless returned HTTP ${res.status} for marketplace asset download.`,
+      });
+    }
+    const buf = await res.arrayBuffer();
+    return {
+      bytes: new Uint8Array(buf),
+      contentType: res.headers.get("Content-Type") ?? "application/octet-stream",
+    };
+  }
+
+  recordMarketplaceRemix(slug: string): Promise<RecordMarketplaceRemixOutput> {
+    return this.post<RecordMarketplaceRemixOutput>("/recordMarketplaceRemix", {
+      slug,
+    });
+  }
+
+  publishMarketplaceListing(
+    input: PublishMarketplaceListingInput,
+  ): Promise<PublishMarketplaceListingOutput> {
+    return this.post<PublishMarketplaceListingOutput>(
+      "/publishMarketplaceListing",
+      input,
+    );
+  }
+
+  starMarketplaceListing(slug: string): Promise<StarMarketplaceListingOutput> {
+    return this.post<StarMarketplaceListingOutput>("/starMarketplaceListing", {
+      slug,
+    });
+  }
+
+  unstarMarketplaceListing(
+    slug: string,
+  ): Promise<StarMarketplaceListingOutput> {
+    return this.post<StarMarketplaceListingOutput>(
+      "/unstarMarketplaceListing",
+      { slug },
+    );
   }
 
   // --------------------------------------------------------------------------

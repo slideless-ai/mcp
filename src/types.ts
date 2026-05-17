@@ -264,6 +264,101 @@ export interface DeletePresentationOutput {
 }
 
 // ============================================================================
+// Marketplace
+// ============================================================================
+
+export type MarketplaceKind = "presentation" | "app" | "plan";
+export type MarketplaceStatus = "public" | "unlisted";
+
+export interface MarketplacePublicListing {
+  slug: string;
+  kind: MarketplaceKind;
+  interactive: boolean;
+  status: MarketplaceStatus;
+  title: string;
+  description: string;
+  tags: string[];
+  category: string | null;
+  authorDisplayName: string;
+  authorHandle: string;
+  thumbnailUrl: string | null;
+  previewUrl: string;
+  publishedVersion: number;
+  remixCount: number;
+  starCount: number;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListMarketplaceListingsInput {
+  query?: string;
+  kind?: MarketplaceKind;
+  tag?: string;
+  category?: string;
+  sort?: "recent" | "popular" | "stars";
+  limit?: number;
+}
+
+export interface ListMarketplaceListingsOutput {
+  listings: MarketplacePublicListing[];
+  total: number;
+}
+
+export interface GetListingOutput extends MarketplacePublicListing {
+  readme: string | null;
+  entryPath: string;
+  fileCount: number;
+  totalBytes: number;
+}
+
+export interface MarketplaceListingFile {
+  path: string;
+  sha256: string;
+  size: number;
+  contentType: string;
+}
+
+export interface GetMarketplaceListingFilesOutput {
+  slug: string;
+  entryPath: string;
+  files: MarketplaceListingFile[];
+}
+
+export interface PublishMarketplaceListingInput {
+  presentationId: string;
+  kind: MarketplaceKind;
+  interactive?: boolean;
+  description: string;
+  slug?: string;
+  title?: string;
+  tags?: string[];
+  category?: string;
+  version?: number;
+}
+
+export interface PublishMarketplaceListingOutput {
+  slug: string;
+  kind: MarketplaceKind;
+  interactive: boolean;
+  status: MarketplaceStatus;
+  title: string;
+  publishedVersion: number;
+  marketplaceUrl: string;
+}
+
+export interface RecordMarketplaceRemixOutput {
+  slug: string;
+  remixCount: number;
+}
+
+export interface StarMarketplaceListingOutput {
+  slug: string;
+  starred: boolean;
+  starCount: number;
+}
+
+// ============================================================================
 // Collaborators
 // ============================================================================
 

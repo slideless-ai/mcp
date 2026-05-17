@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { SlidelessClient } from "./slidelessClient.js";
 import { registerCollaboratorTools } from "./tools/collaborators.js";
 import { registerIdentityTools } from "./tools/identity.js";
+import { registerMarketplaceTools } from "./tools/marketplace.js";
 import { registerPresentationTools } from "./tools/presentations.js";
 import { registerSharingTools } from "./tools/sharing.js";
 import { registerUploadTools } from "./tools/upload.js";
@@ -20,4 +21,5 @@ export function registerAllTools(
   registerSharingTools(server, client);
   registerCollaboratorTools(server, client);
   registerUploadTools(server, client);
+  registerMarketplaceTools(server, client);
 }

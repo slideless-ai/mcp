@@ -29,14 +29,15 @@ src/
     ├── presentations.ts  # list / get / versions / download / delete
     ├── upload.ts         # upload_html_presentation, upload_presentation_files
     ├── sharing.ts        # tokens, version mode, unshare, email
-    └── collaborators.ts  # invite / uninvite / list
+    ├── collaborators.ts  # invite / uninvite / list
+    └── marketplace.ts    # search / get / remix / publish / star / unstar
 ```
 
 ## Conventions
 
 ### Tool names are prefixed with `slideless_`
 
-All sixteen tools start with `slideless_` (e.g. `slideless_list_presentations`). Anthropic Connector Directory guidance + collision avoidance when a host has multiple connectors loaded.
+All tools start with `slideless_` (e.g. `slideless_list_presentations`). Anthropic Connector Directory guidance + collision avoidance when a host has multiple connectors loaded.
 
 ### Annotations follow Anthropic review criteria
 
