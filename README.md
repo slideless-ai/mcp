@@ -4,7 +4,7 @@ MCP server for Slideless. Wraps the Slideless HTTP API as Model Context Protocol
 
 ## Architecture
 
-Stateless Cloudflare Worker (Durable Object per session for MCP state). The Worker forwards the user's `Authorization: Bearer cko_…` header to the Slideless Cloud Functions in `europe-west1`. No database, no secrets to rotate — the user's API key never leaves the connector header.
+Stateless Cloudflare Worker — streamable-HTTP transport, no Durable Object. A per-request `McpServer` is built and registered on each `/mcp` call. The Worker forwards the user's `Authorization: Bearer cko_…` header to the Slideless Cloud Functions in `europe-west1`. No database, no secrets to rotate — the user's API key never leaves the connector header.
 
 ```
 Claude / ChatGPT  →  mcp.slideless.ai/mcp  (Cloudflare Worker)
@@ -42,6 +42,12 @@ Claude / ChatGPT  →  mcp.slideless.ai/mcp  (Cloudflare Worker)
 | `slideless_uninvite_collaborator` | Revoke a collaborator |
 | `slideless_list_collaborators` | List collaborators on a presentation |
 | `slideless_delete_presentation` | Permanently delete a presentation |
+| `slideless_search_marketplace` | Search the public marketplace for remixable presentations, apps, and plans (no key) |
+| `slideless_get_marketplace_listing` | Full detail for one marketplace listing by slug (no key) |
+| `slideless_remix_listing` | Remix a listing — returns the manifest plus inline contents of every text file (no key) |
+| `slideless_publish_listing` | Publish a pushed presentation to the marketplace (requires `marketplace:publish` scope) |
+| `slideless_star_listing` | Star a marketplace listing on behalf of the connected user |
+| `slideless_unstar_listing` | Remove the connected user's star from a listing |
 
 ## Local development
 
@@ -76,7 +82,7 @@ npm run typecheck
 
 ```
 src/
-├── index.ts              # Worker entry: routing, rate limiting, McpAgent
+├── index.ts              # Worker entry: routing, rate limiting, per-request McpServer
 ├── server.ts             # Tool registration entry point
 ├── slidelessClient.ts    # Typed fetch wrapper around Cloud Functions
 ├── types.ts              # Wire shapes (mirrors slideless-app types/)
@@ -86,7 +92,8 @@ src/
     ├── presentations.ts  # list / get / versions / download / delete
     ├── upload.ts         # upload_html / upload_files (3-step orchestration)
     ├── sharing.ts        # tokens, version mode, unshare, email
-    └── collaborators.ts  # invite / uninvite / list
+    ├── collaborators.ts  # invite / uninvite / list
+    └── marketplace.ts    # search / get / remix / publish / star / unstar
 ```
 
 ## Related repos
