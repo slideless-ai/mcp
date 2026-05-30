@@ -64,14 +64,14 @@ export class SlidelessClient {
   }
 
   getSharedPresentationInfo(presentationId: string): Promise<PresentationInfo> {
-    const url = `/getSharedPresentationInfo?presentationId=${encodeURIComponent(presentationId)}`;
+    const url = `/getSharedPresentationInfo/${encodeURIComponent(presentationId)}`;
     return this.get<PresentationInfo>(url);
   }
 
   listPresentationVersions(
     presentationId: string,
   ): Promise<ListPresentationVersionsOutput> {
-    const url = `/listPresentationVersions?presentationId=${encodeURIComponent(presentationId)}`;
+    const url = `/listPresentationVersions/${encodeURIComponent(presentationId)}`;
     return this.get<ListPresentationVersionsOutput>(url);
   }
 
@@ -80,8 +80,8 @@ export class SlidelessClient {
     version: number,
   ): Promise<GetPresentationVersionOutput> {
     const url =
-      `/getPresentationVersion?presentationId=${encodeURIComponent(presentationId)}` +
-      `&version=${encodeURIComponent(String(version))}`;
+      `/getPresentationVersion/${encodeURIComponent(presentationId)}` +
+      `/${encodeURIComponent(String(version))}`;
     return this.get<GetPresentationVersionOutput>(url);
   }
 
@@ -147,8 +147,11 @@ export class SlidelessClient {
   }
 
   /**
-   * Upload a single asset blob. The Cloud Function expects the raw bytes as
-   * the request body and the metadata in query params.
+   * Upload a single asset blob. The Cloud Function parses the request with
+   * busboy and expects `multipart/form-data` with the metadata as fields
+   * (`presentationId`/`sessionId`, `sha256`, `contentType`) and the bytes as a
+   * `file` part. Don't set Content-Type manually — `fetch` derives the
+   * multipart boundary from the `FormData` body.
    */
   async uploadPresentationAsset(args: {
     sessionId?: string;
@@ -157,18 +160,22 @@ export class SlidelessClient {
     contentType: string;
     body: ArrayBuffer | Uint8Array<ArrayBuffer>;
   }): Promise<UploadPresentationAssetOutput> {
-    const params = new URLSearchParams();
-    if (args.sessionId) params.set("sessionId", args.sessionId);
-    if (args.presentationId) params.set("presentationId", args.presentationId);
-    params.set("sha256", args.sha256);
-    const url = `${this.baseUrl}/uploadPresentationAsset?${params.toString()}`;
-    const res = await fetch(url, {
+    const form = new FormData();
+    if (args.sessionId) form.set("sessionId", args.sessionId);
+    if (args.presentationId) form.set("presentationId", args.presentationId);
+    form.set("sha256", args.sha256);
+    form.set("contentType", args.contentType);
+    form.set(
+      "file",
+      new Blob([args.body], {
+        type: args.contentType || "application/octet-stream",
+      }),
+      "blob",
+    );
+    const res = await fetch(`${this.baseUrl}/uploadPresentationAsset`, {
       method: "POST",
-      headers: {
-        Authorization: this.authHeader,
-        "Content-Type": args.contentType || "application/octet-stream",
-      },
-      body: args.body,
+      headers: { Authorization: this.authHeader },
+      body: form,
     });
     return this.unwrap<UploadPresentationAssetOutput>(res);
   }
@@ -230,7 +237,7 @@ export class SlidelessClient {
   }
 
   listCollaborators(presentationId: string): Promise<ListCollaboratorsOutput> {
-    const url = `/listCollaborators?presentationId=${encodeURIComponent(presentationId)}`;
+    const url = `/listCollaborators/${encodeURIComponent(presentationId)}`;
     return this.get<ListCollaboratorsOutput>(url);
   }
 
