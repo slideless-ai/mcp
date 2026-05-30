@@ -2,23 +2,26 @@
   "name": "slideless-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Slideless MCP server — wraps the Slideless HTTP API as MCP tools so non-technical users can list, share, and manage HTML presentations from claude.ai, Claude Desktop, ChatGPT, and any MCP host.",
-  "type": "module",
+  "description": "Slideless MCP server — wraps the Slideless HTTP API as MCP tools so non-technical users can list, share, and manage HTML presentations from claude.ai, Claude Desktop, ChatGPT, and any MCP host. Hosted on Vercel (Next.js + mcp-handler).",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "dev": "next dev -p 8787",
+    "build": "next build",
+    "start": "next start -p 8787",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "agents": "^0.11.5",
-    "zod": "^3.23.8"
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "@vercel/firewall": "^1.0.0",
+    "mcp-handler": "^1.1.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250109.0",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.8",
-    "wrangler": "^4.85.0"
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.6.3"
   }
 }

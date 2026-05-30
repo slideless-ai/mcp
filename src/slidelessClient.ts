@@ -1,4 +1,4 @@
-import { SlidelessApiError } from "./errors.js";
+import { SlidelessApiError } from "./errors";
 import type {
   AddPresentationTokenInput,
   AddPresentationTokenOutput,
@@ -33,7 +33,7 @@ import type {
   UnsharePresentationOutput,
   UploadPresentationAssetOutput,
   VerifyApiKeyOutput,
-} from "./types.js";
+} from "./types";
 
 /**
  * Typed thin wrapper around the Slideless HTTP Cloud Functions.
@@ -155,7 +155,7 @@ export class SlidelessClient {
     presentationId?: string;
     sha256: string;
     contentType: string;
-    body: ArrayBuffer | Uint8Array;
+    body: ArrayBuffer | Uint8Array<ArrayBuffer>;
   }): Promise<UploadPresentationAssetOutput> {
     const params = new URLSearchParams();
     if (args.sessionId) params.set("sessionId", args.sessionId);

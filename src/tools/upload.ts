@@ -1,22 +1,22 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { wrapToolErrors } from "../errors.js";
-import type { SlidelessClient } from "../slidelessClient.js";
-import type { VersionFile } from "../types.js";
+import { wrapToolErrors } from "../errors";
+import type { SlidelessClient } from "../slidelessClient";
+import type { VersionFile } from "../types";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
+async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-function decodeBase64(b64: string): Uint8Array {
+function decodeBase64(b64: string): Uint8Array<ArrayBuffer> {
   const clean = b64.replace(/\s+/g, "");
   const binary = atob(clean);
   const out = new Uint8Array(binary.length);
@@ -26,7 +26,7 @@ function decodeBase64(b64: string): Uint8Array {
 
 interface PreparedFile {
   path: string;
-  bytes: Uint8Array;
+  bytes: Uint8Array<ArrayBuffer>;
   sha256: string;
   size: number;
   contentType: string;

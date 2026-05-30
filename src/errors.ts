@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from "./types.js";
+import type { ApiErrorBody } from "./types";
 
 /**
  * Error thrown when the Slideless HTTP API returns a non-2xx response or a

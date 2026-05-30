@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "ai.slideless/mcp",
+  "title": "Slideless",
+  "description": "List, share, upload, remix, and manage HTML presentations on Slideless from Claude, ChatGPT, and any MCP host.",
+  "repository": {
+    "url": "https://github.com/slideless-ai/mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.slideless.ai/mcp"
+    }
+  ]
+}

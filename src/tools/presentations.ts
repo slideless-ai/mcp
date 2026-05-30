@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { wrapToolErrors } from "../errors.js";
-import type { SlidelessClient } from "../slidelessClient.js";
+import { wrapToolErrors } from "../errors";
+import type { SlidelessClient } from "../slidelessClient";
 
 export function registerPresentationTools(
   server: McpServer,

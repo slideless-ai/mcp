@@ -1,9 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import { wrapToolErrors } from "../errors.js";
-import type { SlidelessClient } from "../slidelessClient.js";
-import type { TokenVersionMode } from "../types.js";
+import { wrapToolErrors } from "../errors";
+import type { SlidelessClient } from "../slidelessClient";
+import type { TokenVersionMode } from "../types";
 
 const versionModeSchema = z
   .union([
