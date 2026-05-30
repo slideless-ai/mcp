@@ -15,7 +15,7 @@ Live at `https://mcp.slideless.ai/mcp`. Registry name: `ai.slideless/mcp`.
 - **Runtime**: Vercel Functions (Node.js), Next.js 15 App Router
 - **Framework**: `@modelcontextprotocol/sdk` (server) + `createMcpHandler` from [`mcp-handler`](https://www.npmjs.com/package/mcp-handler) (stateless streamable-HTTP, SSE disabled, no Redis)
 - **Auth**: OAuth 2.1 resource server. A no-auth `/mcp` request returns `401` + `WWW-Authenticate` pointing at `/.well-known/oauth-protected-resource` (RFC 9728), which advertises `app.slideless.ai` as the authorization server. OAuth-aware hosts auto-discover and run the sign-in/consent flow; static-key hosts send `Authorization: Bearer cko_…`. Either way the header is forwarded verbatim — the server never validates tokens itself; the Cloud Functions do (fail-fast on the first tool call).
-- **Rate limiting**: `@vercel/firewall` — `mcp-per-ip` (60/10s) and `mcp-per-key` (600/60s) custom rules, referenced by ID. Fails open if the rules don't exist.
+- **Rate limiting**: Vercel WAF edge rules (managed via `vercel firewall`), not in-code — `mcp-per-ip` (60/10s, keyed by IP) and `mcp-per-key` (600/60s, keyed by the `Authorization` header), both matching `path` starts-with `/mcp`. Enforced before the function runs; returns `429`.
 
 ### Why Vercel (not Cloudflare)
 
@@ -32,7 +32,6 @@ app/
 src/
 ├── config.ts             # base URL, SERVER_INFO (SEP-973 title/icons), instructions
 ├── http.ts               # protectedResourceMetadata, unauthorizedResponse, corsPreflightResponse
-├── rateLimit.ts          # @vercel/firewall per-IP / per-key
 ├── server.ts             # registerAllTools — calls each tools/ register function
 ├── slidelessClient.ts    # One method per Cloud Function. Typed.
 ├── types.ts              # Wire shapes — copied from slideless-app, Firestore types stripped
@@ -96,7 +95,7 @@ Test with `npx @modelcontextprotocol/inspector` (Streamable HTTP, `http://localh
 
 Push to `main` → Vercel auto-deploys production (`codika/slideless-mcp`). Manual: `vercel deploy --prod --scope codika`.
 
-The custom domain `mcp.slideless.ai` is a CNAME on external DNS → Vercel. Two Firewall rules (`mcp-per-ip`, `mcp-per-key`) provide rate limiting; create them in the project's Firewall dashboard.
+The custom domain `mcp.slideless.ai` is a CNAME on external DNS → Vercel. Rate limiting is two Vercel WAF rules (`mcp-per-ip`, `mcp-per-key`) managed via `vercel firewall rules add … && vercel firewall publish` (recreate commands in README → Deploy).
 
 ## Registry
 

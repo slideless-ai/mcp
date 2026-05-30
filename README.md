@@ -90,10 +90,20 @@ Pushed to `main` → Vercel auto-deploys production (project `codika/slideless-m
 vercel deploy --prod --scope codika
 ```
 
-**Rate limiting** uses `@vercel/firewall`. Two custom Firewall rules must exist in the project dashboard (the code references them by ID; until they exist, limiting fails open):
+**Rate limiting** is enforced at the edge by Vercel WAF rules (managed via the `vercel firewall` CLI), matching `path` starts-with `/mcp`:
 
-- `mcp-per-ip` → 60 requests / 10s
-- `mcp-per-key` → 600 requests / 60s
+- `mcp-per-ip` → 60 req / 10s, keyed by IP
+- `mcp-per-key` → 600 req / 60s, keyed by the `Authorization` header (so each API key / OAuth token gets its own bucket)
+
+Both return `429` when exceeded, before the function runs. Recreate with:
+
+```bash
+vercel firewall rules add "mcp-per-ip" --condition '{"type":"path","op":"pre","value":"/mcp"}' \
+  --action rate_limit --rate-limit-window 10 --rate-limit-requests 60 --rate-limit-keys ip --yes
+vercel firewall rules add "mcp-per-key" --condition '{"type":"path","op":"pre","value":"/mcp"}' \
+  --action rate_limit --rate-limit-window 60 --rate-limit-requests 600 --rate-limit-keys header:authorization --yes
+vercel firewall publish --yes
+```
 
 ## Source layout
 
@@ -106,7 +116,6 @@ app/
 src/
 ├── config.ts             # base URL, server identity (SEP-973 branding), instructions
 ├── http.ts               # OAuth metadata, CORS, 401 challenge builders
-├── rateLimit.ts          # @vercel/firewall per-IP / per-key limits
 ├── server.ts             # registerAllTools entry point
 ├── slidelessClient.ts    # typed fetch wrapper around the Cloud Functions
 ├── types.ts              # wire shapes (mirrors slideless-app types/)

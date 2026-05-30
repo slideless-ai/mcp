@@ -19,7 +19,6 @@ import { createMcpHandler } from "mcp-handler";
 import { SlidelessClient } from "@/slidelessClient";
 import { registerAllTools } from "@/server";
 import { SERVER_INFO, INSTRUCTIONS, SLIDELESS_API_BASE_URL } from "@/config";
-import { rateLimit } from "@/rateLimit";
 import { unauthorizedResponse, corsPreflightResponse } from "@/http";
 
 export const runtime = "nodejs";
@@ -40,11 +39,9 @@ function handlerFor(client: SlidelessClient) {
 }
 
 async function handle(req: Request): Promise<Response> {
+  // Rate limiting is enforced at the edge by Vercel WAF rules (mcp-per-ip,
+  // mcp-per-key) before this function runs — see README "Rate limiting".
   const authHeader = req.headers.get("Authorization");
-
-  const limited = await rateLimit(req, authHeader);
-  if (limited) return limited;
-
   if (!authHeader) return unauthorizedResponse(req);
 
   const client = new SlidelessClient(SLIDELESS_API_BASE_URL, authHeader);
