@@ -11,6 +11,10 @@ next-env.d.ts
 # Vercel
 .vercel
 
+# Wrangler (generated build cache + types)
+.wrangler/
+worker-configuration.d.ts
+
 # Local env
 .env
 .env*.local
